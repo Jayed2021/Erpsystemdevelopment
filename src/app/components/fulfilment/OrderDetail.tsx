@@ -786,58 +786,6 @@ export function OrderDetail() {
                 <p className="text-sm text-gray-500">{customerEmail || 'Not provided'}</p>
               )}
             </div>
-            {/* CS Assignment */}
-            <div className="pt-2 border-t space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-600 flex items-center gap-1">
-                  Assigned CS Person
-                </Label>
-                {canEditCS ? (
-                  <Select value={assignedTo} onValueChange={(val) => {
-                    const u = users.find(u => u.id === val);
-                    setAssignedTo(val);
-                    setAssignedToName(u?.name || '');
-                    handleFieldUpdate('Assigned CS Person', u?.name || '');
-                  }}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Select CS person" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.filter(u => u.role === 'customer_service').map(u => (
-                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm font-medium">{assignedToName || 'Unassigned'}</p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-600">
-                  Confirmed By
-                  <span className="ml-1 text-gray-400">(if covering for assigned person)</span>
-                </Label>
-                {canEditCS ? (
-                  <Select value={confirmedBy || '__none__'} onValueChange={(val) => {
-                    const v = val === '__none__' ? '' : val;
-                    setConfirmedBy(v);
-                    handleFieldUpdate('Confirmed By', v || 'None');
-                  }}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Same as assigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— Same as assigned —</SelectItem>
-                      {users.filter(u => u.role === 'customer_service').map(u => (
-                        <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm font-medium">{confirmedBy || '—'}</p>
-                )}
-              </div>
-            </div>
 
             <div className="pt-2 border-t space-y-3">
               {/* Payment Method */}
@@ -1341,12 +1289,82 @@ export function OrderDetail() {
             <div className="border-t pt-4 space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="order-source" className="text-xs text-gray-600">Order Source</Label>
-                <Badge variant="outline" className="w-fit">
-                  {orderSource === 'website' ? 'Website' : 
-                   orderSource === 'meta_suite' ? 'Meta Suite' : 
-                   orderSource === 'phonecall' ? 'Phonecall' :
-                   orderSource === 'whatsapp' ? 'WhatsApp' : 'Email'}
-                </Badge>
+                {canEditCS ? (
+                  <Select value={orderSource} onValueChange={(value) => {
+                    setOrderSource(value);
+                    handleFieldUpdate('Order Source', value);
+                  }}>
+                    <SelectTrigger id="order-source" className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="website">Website</SelectItem>
+                      <SelectItem value="meta_suite">Meta Suite</SelectItem>
+                      <SelectItem value="phonecall">Phonecall</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge variant="outline" className="w-fit">
+                    {orderSource === 'website' ? 'Website' : 
+                     orderSource === 'meta_suite' ? 'Meta Suite' : 
+                     orderSource === 'phonecall' ? 'Phonecall' :
+                     orderSource === 'whatsapp' ? 'WhatsApp' : 'Email'}
+                  </Badge>
+                )}
+              </div>
+
+              {/* CS Assignment - Moved from Customer Information */}
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-600 flex items-center gap-1">
+                  Assigned CS Person
+                </Label>
+                {canEditCS ? (
+                  <Select value={assignedTo} onValueChange={(val) => {
+                    const u = users.find(u => u.id === val);
+                    setAssignedTo(val);
+                    setAssignedToName(u?.name || '');
+                    handleFieldUpdate('Assigned CS Person', u?.name || '');
+                  }}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select CS person" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.filter(u => u.role === 'customer_service').map(u => (
+                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">{assignedToName || 'Unassigned'}</p>
+                )}
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-600">
+                  Confirmed By
+                  <span className="ml-1 text-gray-400">(if covering for assigned person)</span>
+                </Label>
+                {canEditCS ? (
+                  <Select value={confirmedBy || '__none__'} onValueChange={(val) => {
+                    const v = val === '__none__' ? '' : val;
+                    setConfirmedBy(v);
+                    handleFieldUpdate('Confirmed By', v || 'None');
+                  }}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Same as assigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Same as assigned —</SelectItem>
+                      {users.filter(u => u.role === 'customer_service').map(u => (
+                        <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">{confirmedBy || '—'}</p>
+                )}
               </div>
 
               {orderSource === 'meta_suite' && (
@@ -1370,17 +1388,6 @@ export function OrderDetail() {
                   </div>
                 </>
               )}
-
-              <div className="pt-2 border-t space-y-2">
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-600">Confirmed By</p>
-                  <p className="text-sm font-medium">{currentUser.name}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-600">Created Date</p>
-                  <p className="text-sm">{order.created_date}</p>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>

@@ -1,34 +1,71 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./components/Dashboard";
+import { Login } from "./components/auth/Login";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { SetupWizard } from "./components/setup/SetupWizard";
+import { Settings } from "./components/settings/Settings";
+
+// Purchase components
 import { PurchaseOrders } from "./components/purchase/PurchaseOrders";
 import { CreatePO } from "./components/purchase/CreatePO";
+import { PODetail } from "./components/purchase/PODetail";
 import { ReceiveGoods } from "./components/purchase/ReceiveGoods";
 import { Suppliers } from "./components/purchase/Suppliers";
-import { PODetail } from "./components/purchase/PODetail";
+
+// Inventory components
 import { InventoryStock } from "./components/inventory/InventoryStock";
 import { InventoryLots } from "./components/inventory/InventoryLots";
 import { InventoryMovements } from "./components/inventory/InventoryMovements";
-import { InventoryAudit } from "./components/inventory/InventoryAudit";
 import { WarehouseLocations } from "./components/inventory/WarehouseLocations";
+import { InventoryAudit } from "./components/inventory/InventoryAudit";
 import { ProductDetail } from "./components/inventory/ProductDetail";
+
+// Fulfilment components
 import { Orders } from "./components/fulfilment/Orders";
 import { OrderDetail } from "./components/fulfilment/OrderDetail";
 import { Operations } from "./components/fulfilment/Operations";
 import { OperationsOrderDetail } from "./components/fulfilment/OperationsOrderDetail";
 import { Returns } from "./components/fulfilment/Returns";
+
+// Finance components
 import { Expenses } from "./components/finance/Expenses";
 import { ProfitAnalysis } from "./components/finance/ProfitAnalysis";
 import { Collection } from "./components/finance/Collection";
+
+// Customer components
 import { Customers } from "./components/customers/Customers";
 import { CustomerDetail } from "./components/customers/CustomerDetail";
+
+// Reports components
 import { Reports } from "./components/reports/Reports";
-import { Settings } from "./components/settings/Settings";
+
+// Placeholder component for routes that haven't been built yet
+const ComingSoon = () => (
+  <div className="flex items-center justify-center h-full">
+    <div className="text-center">
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Coming Soon</h2>
+      <p className="text-gray-600">This feature is under development</p>
+    </div>
+  </div>
+);
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    Component: Login,
+  },
+  {
+    path: "/setup",
+    Component: SetupWizard,
+  },
+  {
     path: "/",
-    Component: Layout,
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, Component: Dashboard },
       

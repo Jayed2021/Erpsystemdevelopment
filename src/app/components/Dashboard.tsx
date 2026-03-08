@@ -293,8 +293,8 @@ export function Dashboard() {
             <PieChart>
               <Pie data={statusDonut} dataKey="count" cx="50%" cy="50%"
                 innerRadius={45} outerRadius={72} paddingAngle={2} stroke="none">
-                {statusDonut.map((entry) => (
-                  <Cell key={entry.status} fill={entry.color} />
+                {statusDonut.map((entry, index) => (
+                  <Cell key={`cell-${entry.status}-${index}`} fill={entry.color} />
                 ))}
               </Pie>
               <Tooltip formatter={(v: number, _: string, p: any) => [v, p.payload.name]} />

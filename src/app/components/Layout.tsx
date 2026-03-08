@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -11,10 +11,12 @@ import {
   Settings,
   User,
   Menu,
-  X
+  X,
+  LogOut
 } from "lucide-react";
 import { useState } from "react";
-import { currentUser, users, setCurrentUser, purchaseOrders, type User as UserType } from "../data/mockData";
+import { useAuth } from "../contexts/AuthContext";
+import { purchaseOrders } from "../data/mockData";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -25,15 +27,23 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
+import { toast } from "sonner";
 
 export function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [user, setUser] = useState<UserType>(currentUser);
 
-  const handleUserChange = (newUser: UserType) => {
-    setUser(newUser);
-    setCurrentUser(newUser);
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Signed out successfully');
+      navigate('/login');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      toast.error('Failed to sign out');
+    }
   };
 
   // Role-based navigation
@@ -94,7 +104,7 @@ export function Layout() {
 
   const hasAccess = (roles: string[]) => {
     if (!roles) return true; // If no roles specified, allow all
-    return roles.includes(user.role);
+    return roles.includes(profile.role);
   };
 
   const isActive = (href: string) => {
@@ -154,28 +164,22 @@ export function Layout() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <User className="w-4 h-4" />
-                  {user.name}
-                  <Badge className={`${getRoleBadgeColor(user.role)} text-white ml-2`}>
-                    {getRoleLabel(user.role)}
+                  {profile?.full_name}
+                  <Badge className={`${getRoleBadgeColor(profile?.role)} text-white ml-2`}>
+                    {getRoleLabel(profile?.role)}
                   </Badge>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Switch User (Demo)</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {users.map((u) => (
-                  <DropdownMenuItem
-                    key={u.id}
-                    onClick={() => handleUserChange(u)}
-                    className="gap-2"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>{u.name}</span>
-                    <Badge className={`${getRoleBadgeColor(u.role)} text-white ml-auto text-xs`}>
-                      {getRoleLabel(u.role)}
-                    </Badge>
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

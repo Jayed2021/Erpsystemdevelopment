@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Users, ShoppingCart, UserCheck, Store } from 'lucide-react';
+import { Settings as SettingsIcon, Users, ShoppingCart, UserCheck, Store, Truck, MessageSquare, Barcode } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { UserManagement } from './UserManagement';
 import { WooCommerceSettings } from './WooCommerceSettings';
 import { CSAssignment } from './CSAssignment';
 import { StoreProfile } from './StoreProfile';
+import { CourierSettings } from './CourierSettings';
+import { SMSSettings } from './SMSSettings';
+import { BarcodeSettings } from './BarcodeSettings';
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState('store');
@@ -34,6 +37,18 @@ export function Settings() {
             <ShoppingCart className="w-4 h-4" />
             WooCommerce Integration
           </TabsTrigger>
+          <TabsTrigger value="courier" className="flex items-center gap-2">
+            <Truck className="w-4 h-4" />
+            Courier Integration
+          </TabsTrigger>
+          <TabsTrigger value="sms" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            SMS Integration
+          </TabsTrigger>
+          <TabsTrigger value="barcode" className="flex items-center gap-2">
+            <Barcode className="w-4 h-4" />
+            Barcode Integration
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="store" className="mt-6">
@@ -50,6 +65,18 @@ export function Settings() {
 
         <TabsContent value="woocommerce" className="mt-6">
           <WooCommerceSettings />
+        </TabsContent>
+
+        <TabsContent value="courier" className="mt-6">
+          <CourierSettings />
+        </TabsContent>
+
+        <TabsContent value="sms" className="mt-6">
+          <SMSSettings />
+        </TabsContent>
+
+        <TabsContent value="barcode" className="mt-6">
+          <BarcodeSettings />
         </TabsContent>
       </Tabs>
     </div>
