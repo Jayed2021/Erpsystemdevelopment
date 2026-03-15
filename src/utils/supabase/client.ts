@@ -25,7 +25,9 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`;
   } else {
-    headers['Authorization'] = `Bearer ${publicAnonKey}`;
+    // Don't fallback to anon key - this will cause 401 errors
+    // Let the request fail so we can redirect to login
+    console.warn('No active session - API request will fail');
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {

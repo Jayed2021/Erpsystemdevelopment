@@ -7,12 +7,17 @@ import { setupSQL } from "./setup.tsx";
 
 const app = new Hono();
 
-// Initialize Supabase client
+// Server version: 2.0.1 (Fixed JWT validation with anon key - deployed)
+// Initialize Supabase client (Updated: Fixed JWT auth validation)
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+// Service role client for admin operations (bypass RLS)
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Anon client for auth validation (validates user JWTs)
+const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
 
 // Enable logger
 app.use('*', logger(console.log));
@@ -32,16 +37,25 @@ app.use(
 // Middleware to verify auth token and get user
 const authMiddleware = async (c: any, next: any) => {
   const authHeader = c.req.header('Authorization');
+  
+  console.log('Auth middleware - Authorization header:', authHeader ? 'Present' : 'Missing');
+  
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.error('Auth middleware - No valid Authorization header');
     return c.json({ error: 'Unauthorized - Missing token' }, 401);
   }
 
   const token = authHeader.split(' ')[1];
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+  console.log('Auth middleware - Token length:', token?.length);
+  
+  const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
 
   if (error || !user) {
-    return c.json({ error: 'Unauthorized - Invalid token' }, 401);
+    console.error('Auth middleware - Token validation failed:', error?.message || 'No user');
+    return c.json({ error: 'Unauthorized - Invalid JWT: ' + (error?.message || 'No user found') }, 401);
   }
+
+  console.log('Auth middleware - User authenticated:', user.id);
 
   // Get user profile with role
   const { data: profile, error: profileError } = await supabase
@@ -51,8 +65,11 @@ const authMiddleware = async (c: any, next: any) => {
     .single();
 
   if (profileError || !profile) {
+    console.error('Auth middleware - Profile fetch failed:', profileError?.message);
     return c.json({ error: 'User profile not found' }, 404);
   }
+
+  console.log('Auth middleware - User profile loaded, role:', profile.role);
 
   // Attach user and profile to context
   c.set('user', user);
@@ -63,7 +80,12 @@ const authMiddleware = async (c: any, next: any) => {
 
 // Health check endpoint
 app.get("/make-server-4e2781f4/health", (c) => {
-  return c.json({ status: "ok", timestamp: new Date().toISOString() });
+  return c.json({ 
+    status: "ok", 
+    version: "2.0.1-jwt-fix",
+    timestamp: new Date().toISOString(),
+    auth_client: "anon_key"
+  });
 });
 
 // ============================================================================
@@ -436,130 +458,102 @@ app.put("/make-server-4e2781f4/users/:id", authMiddleware, async (c) => {
 });
 
 // ============================================================================
-// WOOCOMMERCE INTEGRATION
+// WOOCOMMERCE INTEGRATION (SIMPLIFIED - NO AUTH REQUIRED FOR PRIVATE USE)
 // ============================================================================
 
-// Get WooCommerce settings
-app.get("/make-server-4e2781f4/woo/settings", authMiddleware, async (c) => {
-  const profile = c.get('profile');
-  
-  if (!['admin', 'operations_manager'].includes(profile.role)) {
-    return c.json({ error: 'Insufficient permissions' }, 403);
-  }
-
-  const { data, error } = await supabase
-    .from('woo_settings')
-    .select('id, store_url, last_sync_products, last_sync_orders, auto_sync_enabled, sync_interval_minutes')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
-    console.error('Error fetching WooCommerce settings:', error);
-    return c.json({ error: 'Failed to fetch settings' }, 500);
-  }
-
-  return c.json({ settings: data || null });
-});
-
-// Save WooCommerce settings
-app.post("/make-server-4e2781f4/woo/settings", authMiddleware, async (c) => {
-  const profile = c.get('profile');
-  
-  if (profile.role !== 'admin') {
-    return c.json({ error: 'Admin access required' }, 403);
-  }
-
-  const { store_url, consumer_key, consumer_secret, auto_sync_enabled, sync_interval_minutes } = await c.req.json();
-
-  // Check if settings exist
-  const { data: existing } = await supabase
-    .from('woo_settings')
-    .select('id')
-    .limit(1)
-    .single();
-
-  let result;
-  if (existing) {
-    // Update existing
-    result = await supabase
-      .from('woo_settings')
-      .update({ store_url, consumer_key, consumer_secret, auto_sync_enabled, sync_interval_minutes })
-      .eq('id', existing.id)
-      .select()
-      .single();
-  } else {
-    // Insert new
-    result = await supabase
-      .from('woo_settings')
-      .insert([{ store_url, consumer_key, consumer_secret, auto_sync_enabled, sync_interval_minutes }])
-      .select()
-      .single();
-  }
-
-  if (result.error) {
-    console.error('Error saving WooCommerce settings:', result.error);
-    return c.json({ error: 'Failed to save settings' }, 500);
-  }
-
-  return c.json({ success: true, settings: result.data });
-});
-
-// Sync products from WooCommerce
-app.post("/make-server-4e2781f4/woo/sync-products", authMiddleware, async (c) => {
-  const profile = c.get('profile');
-  
-  if (!['admin', 'operations_manager'].includes(profile.role)) {
-    return c.json({ error: 'Insufficient permissions' }, 403);
-  }
-
+// Simplified product sync - accepts credentials in request body
+app.post("/make-server-4e2781f4/woo/sync-products-simple", async (c) => {
   try {
-    // Get WooCommerce credentials
-    const { data: settings, error: settingsError } = await supabase
-      .from('woo_settings')
-      .select('*')
-      .limit(1)
-      .single();
-
-    if (settingsError || !settings) {
-      return c.json({ error: 'WooCommerce not configured' }, 400);
+    const { store_url, consumer_key, consumer_secret } = await c.req.json();
+    
+    if (!store_url || !consumer_key || !consumer_secret) {
+      return c.json({ error: 'Missing WooCommerce credentials' }, 400);
     }
 
-    // Fetch products from WooCommerce API
-    const wooAuth = btoa(`${settings.consumer_key}:${settings.consumer_secret}`);
-    const wooUrl = `${settings.store_url}/wp-json/wc/v3/products?per_page=100`;
+    // Fetch ALL products from WooCommerce API (paginated)
+    const wooAuth = btoa(`${consumer_key}:${consumer_secret}`);
+    let allProducts = [];
+    let page = 1;
+    let hasMore = true;
     
-    const response = await fetch(wooUrl, {
-      headers: {
-        'Authorization': `Basic ${wooAuth}`,
-      },
-    });
+    console.log('Starting product sync from WooCommerce...');
+    console.log('Store URL:', store_url);
+    console.log('Auth string length:', wooAuth.length);
+    console.log('Consumer key starts with:', consumer_key.substring(0, 10));
+    
+    while (hasMore) {
+      // Use query parameters for authentication instead of headers
+      // This is more reliable and what most integrations (like Google Sheets) use
+      const wooUrl = `${store_url}/wp-json/wc/v3/products?consumer_key=${encodeURIComponent(consumer_key)}&consumer_secret=${encodeURIComponent(consumer_secret)}&per_page=100&page=${page}`;
+      
+      console.log(`Fetching products from: ${wooUrl.replace(consumer_secret, '***SECRET***')}`);
+      
+      // Don't send Authorization header - use query params only
+      const response = await fetch(wooUrl);
 
-    if (!response.ok) {
-      throw new Error(`WooCommerce API error: ${response.statusText}`);
+      console.log(`WooCommerce API response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('WooCommerce API error response:', errorText);
+        
+        // Try to parse as JSON for better error message
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = JSON.stringify(errorJson, null, 2);
+        } catch (e) {
+          // Not JSON, use text as is
+        }
+        
+        return c.json({ 
+          error: `WooCommerce API error (${response.status}): ${errorMessage}`,
+          details: {
+            status: response.status,
+            statusText: response.statusText,
+            url: wooUrl,
+            response: errorText
+          }
+        }, response.status);
+      }
+
+      const products = await response.json();
+      
+      if (products.length === 0) {
+        hasMore = false;
+      } else {
+        allProducts = allProducts.concat(products);
+        console.log(`Fetched page ${page}, total products so far: ${allProducts.length}`);
+        page++;
+      }
+      
+      // Safety limit to prevent infinite loops
+      if (page > 100) {
+        console.log('Reached page limit (100 pages = 10,000 products max)');
+        hasMore = false;
+      }
     }
-
-    const products = await response.json();
     
-    // Process and import products
+    console.log(`Total products fetched: ${allProducts.length}`);
+    
+    // Process and import products with Name, SKU, Category, Regular Price
     const skusToInsert = [];
     
-    for (const product of products) {
+    for (const product of allProducts) {
       if (product.type === 'simple') {
         skusToInsert.push({
           sku: product.sku || `WOO-${product.id}`,
           sku_name: product.name,
           product_id: product.id,
           category: product.categories?.[0]?.name || 'Uncategorized',
+          regular_price: parseFloat(product.regular_price) || 0,
           image_url: product.images?.[0]?.src || null,
           sync_source: 'woocommerce',
         });
-      } else if (product.type === 'variable' && product.variations) {
+      } else if (product.type === 'variable' && product.variations && product.variations.length > 0) {
         // Fetch variations
-        const variationsUrl = `${settings.store_url}/wp-json/wc/v3/products/${product.id}/variations?per_page=100`;
-        const variationsResponse = await fetch(variationsUrl, {
-          headers: { 'Authorization': `Basic ${wooAuth}` },
-        });
+        const variationsUrl = `${store_url}/wp-json/wc/v3/products/${product.id}/variations?consumer_key=${encodeURIComponent(consumer_key)}&consumer_secret=${encodeURIComponent(consumer_secret)}&per_page=100`;
+        const variationsResponse = await fetch(variationsUrl);
         
         if (variationsResponse.ok) {
           const variations = await variationsResponse.json();
@@ -571,6 +565,7 @@ app.post("/make-server-4e2781f4/woo/sync-products", authMiddleware, async (c) =>
               product_id: product.id,
               variation_id: variation.id,
               category: product.categories?.[0]?.name || 'Uncategorized',
+              regular_price: parseFloat(variation.regular_price) || parseFloat(product.regular_price) || 0,
               image_url: variation.image?.src || product.images?.[0]?.src || null,
               sync_source: 'woocommerce',
             });
@@ -578,6 +573,8 @@ app.post("/make-server-4e2781f4/woo/sync-products", authMiddleware, async (c) =>
         }
       }
     }
+
+    console.log(`Total SKUs to insert/update: ${skusToInsert.length}`);
 
     // Upsert SKUs (insert or update if exists)
     const { data: insertedSkus, error: insertError } = await supabase
@@ -587,59 +584,47 @@ app.post("/make-server-4e2781f4/woo/sync-products", authMiddleware, async (c) =>
 
     if (insertError) {
       console.error('Error inserting SKUs:', insertError);
-      return c.json({ error: 'Failed to import products' }, 500);
+      return c.json({ error: 'Failed to import products: ' + insertError.message }, 500);
     }
-
-    // Update last sync timestamp
-    await supabase
-      .from('woo_settings')
-      .update({ last_sync_products: new Date().toISOString() })
-      .eq('id', settings.id);
 
     return c.json({ 
       success: true, 
       imported: insertedSkus?.length || 0,
-      message: `Successfully synced ${insertedSkus?.length || 0} products`
+      message: `Successfully synced ${insertedSkus?.length || 0} products from WooCommerce`
     });
   } catch (error: any) {
-    console.error('WooCommerce sync error:', error);
-    return c.json({ error: error.message || 'Sync failed' }, 500);
+    console.error('WooCommerce product sync error:', error);
+    return c.json({ error: error.message || 'Product sync failed' }, 500);
   }
 });
 
-// Sync orders from WooCommerce
-app.post("/make-server-4e2781f4/woo/sync-orders", authMiddleware, async (c) => {
-  const profile = c.get('profile');
-  
-  if (!['admin', 'operations_manager', 'customer_service'].includes(profile.role)) {
-    return c.json({ error: 'Insufficient permissions' }, 403);
-  }
-
+// Simplified order sync - accepts credentials in request body
+app.post("/make-server-4e2781f4/woo/sync-orders-simple", async (c) => {
   try {
-    const { data: settings, error: settingsError } = await supabase
-      .from('woo_settings')
-      .select('*')
-      .limit(1)
-      .single();
-
-    if (settingsError || !settings) {
-      return c.json({ error: 'WooCommerce not configured' }, 400);
+    const { store_url, consumer_key, consumer_secret } = await c.req.json();
+    
+    if (!store_url || !consumer_key || !consumer_secret) {
+      return c.json({ error: 'Missing WooCommerce credentials' }, 400);
     }
 
-    const wooAuth = btoa(`${settings.consumer_key}:${settings.consumer_secret}`);
-    const wooUrl = `${settings.store_url}/wp-json/wc/v3/orders?per_page=100&orderby=date&order=desc`;
+    console.log('Starting order sync from WooCommerce (recent 100 orders)...');
+
+    const wooAuth = btoa(`${consumer_key}:${consumer_secret}`);
+    // Only sync the 100 most recent orders (sorted by date, newest first)
+    const wooUrl = `${store_url}/wp-json/wc/v3/orders?consumer_key=${encodeURIComponent(consumer_key)}&consumer_secret=${encodeURIComponent(consumer_secret)}&per_page=100&orderby=date&order=desc`;
     
-    const response = await fetch(wooUrl, {
-      headers: { 'Authorization': `Basic ${wooAuth}` },
-    });
+    const response = await fetch(wooUrl);
 
     if (!response.ok) {
-      throw new Error(`WooCommerce API error: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`WooCommerce API error: ${response.statusText} - ${errorText}`);
     }
 
     const wooOrders = await response.json();
+    console.log(`Fetched ${wooOrders.length} recent orders from WooCommerce`);
     
     // Process and import orders
+    let successCount = 0;
     for (const wooOrder of wooOrders) {
       // Check if customer exists, create if not
       let customerId = null;
@@ -741,7 +726,411 @@ app.post("/make-server-4e2781f4/woo/sync-orders", authMiddleware, async (c) => {
       // Delete existing items and insert new ones
       await supabase.from('order_items').delete().eq('order_id', insertedOrder.id);
       await supabase.from('order_items').insert(orderItems);
+      
+      successCount++;
     }
+
+    console.log(`Successfully imported ${successCount} orders`);
+
+    return c.json({ 
+      success: true, 
+      imported: successCount,
+      message: `Successfully synced ${successCount} recent orders (last 100 from WooCommerce)`
+    });
+  } catch (error: any) {
+    console.error('WooCommerce order sync error:', error);
+    return c.json({ error: error.message || 'Order sync failed' }, 500);
+  }
+});
+
+// ============================================================================
+// WOOCOMMERCE INTEGRATION (ORIGINAL - WITH AUTH)
+// ============================================================================
+
+// Get WooCommerce settings
+app.get("/make-server-4e2781f4/woo/settings", authMiddleware, async (c) => {
+  const profile = c.get('profile');
+  
+  if (!['admin', 'operations_manager'].includes(profile.role)) {
+    return c.json({ error: 'Insufficient permissions' }, 403);
+  }
+
+  const { data, error } = await supabase
+    .from('woo_settings')
+    .select('id, store_url, last_sync_products, last_sync_orders, auto_sync_enabled, sync_interval_minutes')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+    console.error('Error fetching WooCommerce settings:', error);
+    return c.json({ error: 'Failed to fetch settings' }, 500);
+  }
+
+  return c.json({ settings: data || null });
+});
+
+// Save WooCommerce settings
+app.post("/make-server-4e2781f4/woo/settings", authMiddleware, async (c) => {
+  const profile = c.get('profile');
+  
+  console.log('WooCommerce settings save request - User role:', profile.role);
+  
+  if (profile.role !== 'admin') {
+    console.error('Access denied - admin role required, current role:', profile.role);
+    return c.json({ error: 'Admin access required. Your role: ' + profile.role }, 403);
+  }
+
+  try {
+    const body = await c.req.json();
+    const { store_url, consumer_key, consumer_secret, auto_sync_enabled, sync_interval_minutes } = body;
+    
+    console.log('Attempting to save WooCommerce settings for store:', store_url);
+
+    // Check if settings exist
+    const { data: existing, error: fetchError } = await supabase
+      .from('woo_settings')
+      .select('id')
+      .limit(1)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      // PGRST116 = no rows returned (expected for first time)
+      console.error('Error checking existing settings:', fetchError);
+      return c.json({ error: 'Database error: ' + fetchError.message }, 500);
+    }
+
+    let result;
+    if (existing) {
+      console.log('Updating existing settings with id:', existing.id);
+      // Update existing
+      result = await supabase
+        .from('woo_settings')
+        .update({ store_url, consumer_key, consumer_secret, auto_sync_enabled, sync_interval_minutes })
+        .eq('id', existing.id)
+        .select()
+        .single();
+    } else {
+      console.log('Creating new settings entry');
+      // Insert new
+      result = await supabase
+        .from('woo_settings')
+        .insert([{ store_url, consumer_key, consumer_secret, auto_sync_enabled, sync_interval_minutes }])
+        .select()
+        .single();
+    }
+
+    if (result.error) {
+      console.error('Error saving WooCommerce settings:', result.error);
+      return c.json({ error: 'Failed to save settings: ' + result.error.message + ' (Code: ' + result.error.code + ')' }, 500);
+    }
+
+    console.log('WooCommerce settings saved successfully');
+    return c.json({ success: true, settings: result.data });
+  } catch (error: any) {
+    console.error('Unexpected error saving WooCommerce settings:', error);
+    return c.json({ error: 'Unexpected error: ' + error.message }, 500);
+  }
+});
+
+// Sync products from WooCommerce
+app.post("/make-server-4e2781f4/woo/sync-products", authMiddleware, async (c) => {
+  const profile = c.get('profile');
+  
+  if (!['admin', 'operations_manager'].includes(profile.role)) {
+    return c.json({ error: 'Insufficient permissions' }, 403);
+  }
+
+  try {
+    // Get WooCommerce credentials
+    const { data: settings, error: settingsError } = await supabase
+      .from('woo_settings')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (settingsError || !settings) {
+      return c.json({ error: 'WooCommerce not configured' }, 400);
+    }
+
+    // Fetch ALL products from WooCommerce API (paginated)
+    const wooAuth = btoa(`${settings.consumer_key}:${settings.consumer_secret}`);
+    let allProducts = [];
+    let page = 1;
+    let hasMore = true;
+    
+    console.log('Starting product sync from WooCommerce...');
+    
+    while (hasMore) {
+      const wooUrl = `${settings.store_url}/wp-json/wc/v3/products?per_page=100&page=${page}`;
+      
+      console.log(`Fetching products from: ${wooUrl}`);
+      
+      const response = await fetch(wooUrl, {
+        headers: {
+          'Authorization': `Basic ${wooAuth}`,
+        },
+      });
+
+      console.log(`WooCommerce API response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('WooCommerce API error response:', errorText);
+        
+        // Try to parse as JSON for better error message
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = JSON.stringify(errorJson, null, 2);
+        } catch (e) {
+          // Not JSON, use text as is
+        }
+        
+        return c.json({ 
+          error: `WooCommerce API error (${response.status}): ${errorMessage}`,
+          details: {
+            status: response.status,
+            statusText: response.statusText,
+            url: wooUrl,
+            response: errorText
+          }
+        }, response.status);
+      }
+
+      const products = await response.json();
+      
+      if (products.length === 0) {
+        hasMore = false;
+      } else {
+        allProducts = allProducts.concat(products);
+        console.log(`Fetched page ${page}, total products so far: ${allProducts.length}`);
+        page++;
+      }
+      
+      // Safety limit to prevent infinite loops
+      if (page > 100) {
+        console.log('Reached page limit (100 pages = 10,000 products max)');
+        hasMore = false;
+      }
+    }
+    
+    console.log(`Total products fetched: ${allProducts.length}`);
+    
+    // Process and import products with Name, SKU, Category, Regular Price
+    const skusToInsert = [];
+    
+    for (const product of allProducts) {
+      if (product.type === 'simple') {
+        skusToInsert.push({
+          sku: product.sku || `WOO-${product.id}`,
+          sku_name: product.name,
+          product_id: product.id,
+          category: product.categories?.[0]?.name || 'Uncategorized',
+          regular_price: parseFloat(product.regular_price) || 0,
+          image_url: product.images?.[0]?.src || null,
+          sync_source: 'woocommerce',
+        });
+      } else if (product.type === 'variable' && product.variations && product.variations.length > 0) {
+        // Fetch variations
+        const variationsUrl = `${settings.store_url}/wp-json/wc/v3/products/${product.id}/variations?per_page=100`;
+        const variationsResponse = await fetch(variationsUrl, {
+          headers: { 'Authorization': `Basic ${wooAuth}` },
+        });
+        
+        if (variationsResponse.ok) {
+          const variations = await variationsResponse.json();
+          
+          for (const variation of variations) {
+            skusToInsert.push({
+              sku: variation.sku || `WOO-${product.id}-${variation.id}`,
+              sku_name: `${product.name} - ${variation.attributes.map((a: any) => a.option).join(', ')}`,
+              product_id: product.id,
+              variation_id: variation.id,
+              category: product.categories?.[0]?.name || 'Uncategorized',
+              regular_price: parseFloat(variation.regular_price) || parseFloat(product.regular_price) || 0,
+              image_url: variation.image?.src || product.images?.[0]?.src || null,
+              sync_source: 'woocommerce',
+            });
+          }
+        }
+      }
+    }
+
+    console.log(`Total SKUs to insert/update: ${skusToInsert.length}`);
+
+    // Upsert SKUs (insert or update if exists)
+    const { data: insertedSkus, error: insertError } = await supabase
+      .from('skus')
+      .upsert(skusToInsert, { onConflict: 'sku', ignoreDuplicates: false })
+      .select();
+
+    if (insertError) {
+      console.error('Error inserting SKUs:', insertError);
+      return c.json({ error: 'Failed to import products: ' + insertError.message }, 500);
+    }
+
+    // Update last sync timestamp
+    await supabase
+      .from('woo_settings')
+      .update({ last_sync_products: new Date().toISOString() })
+      .eq('id', settings.id);
+
+    return c.json({ 
+      success: true, 
+      imported: insertedSkus?.length || 0,
+      message: `Successfully synced ${insertedSkus?.length || 0} products from WooCommerce`
+    });
+  } catch (error: any) {
+    console.error('WooCommerce product sync error:', error);
+    return c.json({ error: error.message || 'Product sync failed' }, 500);
+  }
+});
+
+// Sync orders from WooCommerce
+app.post("/make-server-4e2781f4/woo/sync-orders", authMiddleware, async (c) => {
+  const profile = c.get('profile');
+  
+  if (!['admin', 'operations_manager', 'customer_service'].includes(profile.role)) {
+    return c.json({ error: 'Insufficient permissions' }, 403);
+  }
+
+  try {
+    const { data: settings, error: settingsError } = await supabase
+      .from('woo_settings')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (settingsError || !settings) {
+      return c.json({ error: 'WooCommerce not configured' }, 400);
+    }
+
+    console.log('Starting order sync from WooCommerce (recent 100 orders)...');
+
+    const wooAuth = btoa(`${settings.consumer_key}:${settings.consumer_secret}`);
+    // Only sync the 100 most recent orders (sorted by date, newest first)
+    const wooUrl = `${settings.store_url}/wp-json/wc/v3/orders?per_page=100&orderby=date&order=desc`;
+    
+    const response = await fetch(wooUrl, {
+      headers: { 'Authorization': `Basic ${wooAuth}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`WooCommerce API error: ${response.statusText}`);
+    }
+
+    const wooOrders = await response.json();
+    console.log(`Fetched ${wooOrders.length} recent orders from WooCommerce`);
+    
+    // Process and import orders
+    let successCount = 0;
+    for (const wooOrder of wooOrders) {
+      // Check if customer exists, create if not
+      let customerId = null;
+      if (wooOrder.customer_id > 0) {
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('woo_customer_id', wooOrder.customer_id)
+          .single();
+
+        if (existingCustomer) {
+          customerId = existingCustomer.id;
+        } else {
+          const { data: newCustomer } = await supabase
+            .from('customers')
+            .insert([{
+              woo_customer_id: wooOrder.customer_id,
+              email: wooOrder.billing.email,
+              phone: wooOrder.billing.phone,
+              name: `${wooOrder.billing.first_name} ${wooOrder.billing.last_name}`,
+              address: wooOrder.billing.address_1,
+              city: wooOrder.billing.city,
+              postal_code: wooOrder.billing.postcode,
+              sync_source: 'woocommerce',
+            }])
+            .select()
+            .single();
+          
+          customerId = newCustomer?.id || null;
+        }
+      }
+
+      // Map WooCommerce status to internal CS status
+      const csStatusMap: Record<string, string> = {
+        'pending': 'new_not_called',
+        'processing': 'not_printed',
+        'on-hold': 'awaiting_payment',
+        'completed': 'delivered',
+        'cancelled': 'refund',
+        'refunded': 'refund',
+        'failed': 'refund',
+      };
+
+      const orderData = {
+        woo_order_id: wooOrder.id,
+        order_number: wooOrder.number,
+        customer_id: customerId,
+        customer_name: `${wooOrder.billing.first_name} ${wooOrder.billing.last_name}`,
+        customer_email: wooOrder.billing.email,
+        customer_phone: wooOrder.billing.phone,
+        status: wooOrder.status,
+        cs_status: csStatusMap[wooOrder.status] || 'new_not_called',
+        subtotal: parseFloat(wooOrder.total) - parseFloat(wooOrder.shipping_total) - parseFloat(wooOrder.total_tax),
+        shipping_cost: parseFloat(wooOrder.shipping_total),
+        tax: parseFloat(wooOrder.total_tax),
+        discount: parseFloat(wooOrder.discount_total),
+        total: parseFloat(wooOrder.total),
+        currency: wooOrder.currency,
+        shipping_address_1: wooOrder.shipping.address_1,
+        shipping_address_2: wooOrder.shipping.address_2,
+        shipping_city: wooOrder.shipping.city,
+        shipping_state: wooOrder.shipping.state,
+        shipping_postcode: wooOrder.shipping.postcode,
+        shipping_country: wooOrder.shipping.country,
+        source: 'woocommerce',
+        created_date: wooOrder.date_created.split('T')[0],
+        paid_date: wooOrder.date_paid || null,
+        sync_source: 'woocommerce',
+        last_synced_at: new Date().toISOString(),
+      };
+
+      // Upsert order
+      const { data: insertedOrder, error: orderError } = await supabase
+        .from('orders')
+        .upsert([orderData], { onConflict: 'woo_order_id' })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error(`Error importing order ${wooOrder.id}:`, orderError);
+        continue;
+      }
+
+      // Import order items
+      const orderItems = wooOrder.line_items.map((item: any) => {
+        // Find SKU in our database
+        const skuCode = item.sku || `WOO-${item.product_id}${item.variation_id ? `-${item.variation_id}` : ''}`;
+        
+        return {
+          order_id: insertedOrder.id,
+          sku: skuCode,
+          sku_name: item.name,
+          quantity: item.quantity,
+          price: parseFloat(item.price),
+          total: parseFloat(item.total),
+        };
+      });
+
+      // Delete existing items and insert new ones
+      await supabase.from('order_items').delete().eq('order_id', insertedOrder.id);
+      await supabase.from('order_items').insert(orderItems);
+      
+      successCount++;
+    }
+
+    console.log(`Successfully imported ${successCount} orders`);
 
     // Update last sync timestamp
     await supabase
@@ -751,8 +1140,8 @@ app.post("/make-server-4e2781f4/woo/sync-orders", authMiddleware, async (c) => {
 
     return c.json({ 
       success: true, 
-      imported: wooOrders.length,
-      message: `Successfully synced ${wooOrders.length} orders`
+      imported: successCount,
+      message: `Successfully synced ${successCount} recent orders (last 100 from WooCommerce)`
     });
   } catch (error: any) {
     console.error('WooCommerce order sync error:', error);

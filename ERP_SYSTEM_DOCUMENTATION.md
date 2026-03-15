@@ -791,52 +791,335 @@ A dedicated prescription management section. Customers who have previously order
 
 **Access:** Admin only
 
+The Reports module provides comprehensive analytics and insights across three main categories: Sales Reports, Inventory & Operations Reports, and Customer Service Performance. All reports feature interactive filters, visualizations, and export capabilities.
+
 ### 10.1 Sales Reports
 
-Standard sales reporting with date range filters.
+A comprehensive sales analytics dashboard with multiple sub-tabs for different analytical perspectives.
 
-**Metrics:** Total orders, total revenue, total units sold, average order value, return rate.
+#### Overview Metrics
 
-**Charts:**
-- Daily/Weekly/Monthly revenue trend line
-- Revenue by product category bar chart
-- Payment method breakdown pie chart
-- Order status distribution
+Top-level KPI cards showing:
+- **Total Revenue** — sum of all delivered orders in selected period
+- **Total Orders** — count of orders
+- **Average Order Value (AOV)** — revenue / order count
+- **Gross Profit** — revenue minus COGS
+- **Gross Margin %** — (gross profit / revenue) × 100
 
-**Export:** CSV download of the full dataset for the selected period.
+#### Sub-Tabs in Sales Reports
 
-### 10.2 Customer Reports
+**1. Monthly Trends**
+- Line and bar charts showing month-over-month performance
+- Metrics tracked: Orders, Revenue, COGS, Gross Profit, AOV
+- 6-month historical view with trend indicators (up/down/stable)
+- Export to CSV
 
-Customer behaviour analytics.
+**2. Product Performance**
+- Detailed table of all SKUs with sales data
+- Columns: SKU, Name, Category, Units Sold, Revenue, COGS, Gross Profit, GP%, Return Rate, Trend
+- Sortable by any column
+- Search and filter by category
+- Trend indicators: up ↑ / stable → / down ↓
+- Top performers highlighted with badges
+- Shows which products are most profitable vs highest volume
 
-**Metrics:** New customers vs returning customers, repeat purchase rate, customer acquisition by channel.
+**3. Order Funnel Analysis**
+- Visual funnel chart showing order progression through lifecycle:
+  - Orders Placed (all WooCommerce orders)
+  - Confirmed (CS verified via phone/WhatsApp)
+  - Dispatched to Courier
+  - Delivered
+  - Net Delivered (no returns)
+- Conversion rate calculated at each stage
+- Drop-off analysis to identify bottlenecks
+- Helps identify CS confirmation issues and courier performance
 
-**Tables:** Top customers by order count, top customers by lifetime value, district/geographic distribution.
+**4. Cancellation Analysis**
+- Split view: Before Dispatch vs After Dispatch
+- Breakdown by cancellation reason with counts
+- Reasons tracked:
+  - Before Dispatch: Changed mind, Duplicate, Out of stock, Payment issues, Unreachable
+  - After Dispatch: Customer refused, Wrong address, Courier failed
+- Most common reasons highlighted for process improvement
+- Export for deeper analysis
 
-### 10.3 CS Performance Report
+**5. Courier Performance Comparison**
+- Detailed comparison of all courier partners (Pathao, Steadfast, Redx, Sundarban)
+- Metrics per courier:
+  - Total orders dispatched
+  - Delivered count
+  - Returned count
+  - Pending count
+  - Delivery rate % (delivered / total)
+  - Return rate % (returned / total)
+  - Average delivery days (speed metric)
+  - COD expected amount (total receivable)
+  - COD collected amount (actually collected)
+  - Collection rate % (collected / expected)
+  - Total delivery charges paid to courier
+  - Total COD charges (% fee on collections)
+  - Net amount disbursed to store
+- Monthly trend charts per courier showing delivery vs return trends
+- Best/worst performer badges for key metrics
+- Export for courier negotiation and selection
 
-The most detailed reporting module. Provides a comprehensive view of Customer Service team performance.
+**6. Revenue Reconciliation**
+- Monthly reconciliation between expected and received courier payments
+- Table showing:
+  - Month
+  - Courier name
+  - Invoice number
+  - Expected amount (from system)
+  - Received amount (from courier)
+  - Status (balanced / discrepancy)
+  - Order count
+- Highlights discrepancies for follow-up
+- Useful for financial auditing and courier payment verification
 
-**Period filters:** Daily / Monthly / Quarterly / Yearly
+**7. Additional Lenses** *(Eyewear-specific feature — visible when prescription lens feature is enabled)*
 
-**Per-Agent Summary Cards (one card per CS agent):**
-- Agent name and avatar
+A specialized report for tracking prescription lens orders and lab billing.
+
+**Overview KPI Cards:**
+- **Total Lab Orders** — count of orders with prescription lenses
+- **Total Lab Bill** — sum of all lens charges + fitting charges
+- **Paid to Lab** — total amount already settled (with order count)
+- **Outstanding** — unpaid lab bills (with order count) — highlighted in red
+
+**Outstanding Bill Alert:**
+When unpaid bills exist, a prominent amber alert banner shows:
+- Total outstanding amount
+- Number of orders pending payment
+- Quick export button for lab billing
+
+**Search & Filters:**
+- Search by customer name, WooCommerce ID, or internal order ID
+- Status filter: All / Paid / Unpaid
+- Shows count of filtered orders
+
+**Bulk Actions:**
+- **Checkbox selection** — select multiple unpaid orders
+- **Mark as Paid** button — bulk update selected orders to paid status
+- Shows selected count and total amount in the button label
+
+**Detailed Order Table:**
+Each row displays comprehensive prescription and billing data:
+
+| Column | Data |
+|--------|------|
+| Checkbox | Select for bulk payment (disabled if already paid) |
+| Order | WooCommerce order ID + internal order ID |
+| Customer | Name + phone number |
+| Date | Order date |
+| Frame | Frame SKU + product name |
+| OD (Right Eye) | Sphere, Cylinder, Axis (in monospace font) |
+| OS (Left Eye) | Sphere, Cylinder, Axis (in monospace font) |
+| PD | Pupillary Distance |
+| Lens Type | Full lens specification (e.g., "Blue Light Block 1.56 AR", "Photochromic 1.56 (Transition)") |
+| Lens Price | Cost of lenses (BDT) |
+| Fitting Charge | Lab fitting/assembly charge (BDT) |
+| Total | Total lab bill (lens + fitting) — bold |
+| Status | Badge: Paid (green) / Unpaid (amber) |
+| Actions | Eye icon to view full prescription details |
+
+**Visual Indicators:**
+- Unpaid orders highlighted with amber/yellow background
+- Paid orders have green checkmark badge
+- Unpaid orders have amber alert badge
+- Total row at bottom showing sum of lens prices, fitting charges, and total bills
+
+**Use Cases:**
+- Track all prescription lens orders in one place
+- Verify prescription details before sending to lab
+- Manage lab billing and payments
+- Identify outstanding lab bills
+- Export billing data for lab payment verification
+- Bulk payment processing for efficiency
+
+**Export Capability:**
+- "Export Lab Bill" button downloads all data as CSV/PDF
+- Useful for reconciling with lab invoices
+- Can be filtered before export (e.g., only unpaid, or specific date range)
+
+**Note:** This tab only appears when the "Enable Prescription Lens" feature toggle is ON in Settings → Store Profile. For non-eyewear businesses, this entire tab is hidden.
+
+### 10.2 Inventory & Operations Reports
+
+Four detailed sub-tabs focused on inventory health, operational efficiency, and supplier performance.
+
+#### Sub-Tabs
+
+**1. Inventory Aging Analysis**
+
+Tracks how long inventory has been sitting in the warehouse to identify slow-moving stock.
+
+**Summary Cards (4 aging buckets):**
+- 0-30 Days: Fresh inventory (count of lots, total value)
+- 31-60 Days: Normal aging (count of lots, total value)
+- 61-90 Days: Moderate aging (count of lots, total value)
+- 90+ Days: Old stock requiring action (count, value, highlighted in orange)
+
+**Detailed Table:**
+All active lots with columns:
+- Lot ID
+- SKU code
+- Received Date
+- Age (days) with badge
+- Remaining Quantity
+- Total Value (qty × landed cost)
+- Age Band (0-30 / 31-60 / 61-90 / 90+)
+
+**Visual Indicators:**
+- Rows with 90+ days highlighted in orange background
+- Age badges color-coded by severity
+- Export to CSV for deeper analysis and action planning
+
+**Purpose:** Identify slow-moving inventory and potential dead stock; prioritize sales/promotions for aging inventory.
+
+**2. Return Rates by SKU**
+
+Analyzes product quality and customer satisfaction through return data.
+
+**Table Columns:**
+- SKU code
+- Product name
+- Total Units Sold (count)
+- Units Returned (count)
+- Return Rate % (returned / sold × 100)
+- Status badge:
+  - Excellent (0% returns) — green
+  - Good (<3% returns) — blue
+  - Monitor (≥3% returns) — orange
+
+**Purpose:** Identify problematic products requiring quality review, supplier feedback, or discontinuation; track impact of product improvements.
+
+**3. Supplier Quality Scorecard**
+
+Evaluates supplier performance based on receiving quality metrics from GRN data.
+
+**Table Columns:**
+- Supplier name
+- Total POs placed (count)
+- Total Units Ordered across all POs
+- Damaged units received (quality failures)
+- Shortage units (ordered but not received)
+- Damage Rate % (damaged / ordered × 100)
+- Average Delivery Delay (days late vs expected)
+- Overall Rating badge: 
+  - Excellent (0% damage, 0 delay) — green
+  - Good (<2% damage) — blue
+  - Fair (≥2% damage or delays) — yellow
+
+**Purpose:** Make data-driven supplier selection and negotiation decisions; identify suppliers requiring quality discussions or replacement.
+
+**4. Capital Analysis**
+
+Shows capital tied up in inventory, helping cash flow management and working capital optimization.
+
+**Top 10 Lots by Value Table:**
+- Lot ID
+- SKU code
+- Age (days) badge
+- Quantity remaining
+- Cost per unit (landed cost)
+- Total value (qty × cost) — highlighted in blue
+
+**Summary Card (prominent):**
+- **Total Capital Tied in Inventory** — sum of (remaining_qty × landed_cost) across ALL active lots
+- Count of active lots system-wide
+
+**Purpose:** Identify where most cash is locked up; prioritize sales efforts for high-value slow movers; inform purchasing decisions to optimize working capital.
+
+### 10.3 Customer Service Performance Report
+
+**Access:** Admin only (Operations Manager explicitly cannot access this report)
+
+A comprehensive CS team performance dashboard tracking individual agent metrics, team-wide trends, and productivity analysis.
+
+#### Overview Metrics (Team Level)
+
+Top summary cards:
+- **Total Active Agents** — CS team size
+- **Total Orders Handled** — in selected period
+- **Team Confirmation Rate** — overall % of orders successfully confirmed
+- **Team Average Response Time** — average hours from order creation to first contact attempt
+
+#### Date Range Filters
+
+Standard period selectors:
+- Today
+- Yesterday
+- This Week
+- This Month
+- Last Month
+- This Quarter
+- Custom Range (date picker for any date span)
+
+#### Per-Agent Performance Cards
+
+Individual performance cards for each CS agent showing:
+- Agent name and avatar/initials
 - Total orders assigned in period
-- Confirmed count (orders that reached `not_printed` or beyond)
-- Confirmation rate % (with colour-coded badge: green ≥ 70%, yellow 50-70%, red < 50%)
-- Refund count
-- Exchange count
-- Trend vs previous period (up/down arrow with percentage change)
+- Confirmed orders count (reached `not_printed` or beyond)
+- **Confirmation Rate %** with color-coded badge:
+  - Green ≥ 70% (Excellent performance)
+  - Yellow 50-70% (Good, needs minor improvement)
+  - Red < 50% (Needs Improvement — requires intervention)
+- Refund count (cancelled orders)
+- Exchange count (return + reorder)
+- **Trend vs Previous Period** — up ↑ / stable → / down ↓ arrows with percentage change
 
-**Charts (all filterable by period):**
+#### Performance Visualization Charts
 
-1. **Confirmation Rate Trend Line** — multi-line chart, one line per agent, showing confirmation rate % over time periods
-2. **Assigned Volume Bar Chart** — grouped bar chart showing order volume assigned to each agent per period
-3. **Radar Multi-KPI Comparison** — radar/spider chart with one polygon per agent, axes being: Confirmation Rate, Volume Handled, Refund Rate (inverted), Speed (avg days to confirm), Exchange Rate
-4. **Status Distribution Pie Charts** — one pie chart per agent showing their order status breakdown (what % of their orders ended up in each status)
-5. **Coverage Exchange Matrix** — a matrix showing which agents handled which other agents' orders when someone was absent (coverage events)
+**1. Confirmation Rate Trend (Multi-Line Chart)**
+- One line per agent showing confirmation rate % over time
+- X-axis: Time periods (daily/weekly depending on date range)
+- Y-axis: Confirmation rate percentage (0-100%)
+- Legend with agent names
+- Hover tooltip showing exact values and date
+- Identifies agents improving or declining over time
 
-**Export:** Full performance data exportable to CSV.
+**2. Order Volume by Agent (Grouped Bar Chart)**
+- Bars showing total orders assigned per agent
+- Can be grouped by time period for comparison
+- Identifies workload distribution and balance issues
+- Highlights if certain agents are overloaded or underutilized
+
+**3. Multi-KPI Radar Chart (Spider Chart)**
+- One polygon per agent for visual performance profile comparison
+- 5 Axes:
+  - Confirmation Rate (% of assigned orders confirmed)
+  - Volume Handled (order count)
+  - Refund Rate (inverted — lower is better)
+  - Speed (average days to confirm — lower is better)
+  - Exchange Rate (% of orders that became exchanges)
+- Allows at-a-glance identification of agent strengths and weaknesses
+- Useful for training focus and role assignment
+
+**4. Order Status Distribution (Pie Charts)**
+- One pie chart per agent
+- Shows breakdown of their assigned orders by final CS status:
+  - Delivered (completed successfully)
+  - Refund (cancelled/returned)
+  - Exchange (returned + new order)
+  - Late Delivery (delayed shipments)
+  - In Progress (still being processed)
+- Helps identify agent-specific patterns (e.g. one agent has unusually high refunds indicating a communication or confirmation issue)
+
+**5. Coverage Exchange Matrix (Table)**
+- Matrix showing which agents covered for others during absences
+- Rows: Primary assigned agent
+- Columns: Agent who actually handled the order
+- Cells: Count of orders transferred
+- Useful for understanding cross-training effectiveness and backup coverage
+- Identifies knowledge silos if certain agents cannot cover for others
+
+#### Export Capabilities
+
+- **Export Full Performance Data** — CSV with all agent metrics for the period
+- **Export Individual Agent Reports** — PDF report card per agent
+- **Export Charts** — PNG images of visualizations for presentations
+- **Export Raw Order Data** — CSV of all orders with agent assignments and outcomes
 
 ---
 
@@ -844,7 +1127,7 @@ The most detailed reporting module. Provides a comprehensive view of Customer Se
 
 **Access:** Admin only
 
-Settings has four tabs: Store Profile, User Management, CS Assignment, and WooCommerce Integration.
+Settings has seven tabs: Store Profile, User Management, CS Assignment, WooCommerce Integration, Courier Integration, SMS Integration, and Barcode Integration.
 
 ### 11.1 Store Profile
 
@@ -950,28 +1233,239 @@ Configures how incoming WooCommerce orders are automatically distributed among C
 
 ### 11.4 WooCommerce Integration
 
-The configuration page for the WooCommerce connection.
+The configuration page for connecting the ERP to your WooCommerce store for bi-directional order sync and product catalog sync.
 
-**Fields:**
-- Store URL (e.g. `https://mystore.com`)
-- Consumer Key (`ck_xxxxx`) — WooCommerce REST API read-only key
-- Consumer Secret (`cs_xxxxx`) — masked input with show/hide toggle
+**Purpose:**
+- Automatically import all products from WooCommerce into ERP inventory
+- Sync the 100 most recent orders from WooCommerce
+- Push order status updates back to WooCommerce (planned)
+- Maintain single source of truth for customer orders
+- Eliminate manual data entry between store and ERP
 
-**Actions:**
-- **Test Connection** — makes a test API call to verify credentials are valid
-- **Save** — stores credentials securely (in Supabase Vault in production, not in localStorage)
+**Configuration Fields:**
+- **Store URL** — Full WooCommerce site URL (e.g., `https://lunettes.com.bd`)
+- **Consumer Key** — WooCommerce REST API key starting with `ck_` (masked with show/hide toggle)
+- **Consumer Secret** — WooCommerce REST API secret starting with `cs_` (masked with show/hide toggle)
 
-**Connection status display:**
-- Connected badge with green indicator
-- Last successful sync timestamp
-- Sync status (success / failed with error message)
+**How to Generate API Credentials:**
+1. Login to WordPress admin panel
+2. Navigate to **WooCommerce** → **Settings** → **Advanced** → **REST API**
+3. Click **Add Key**
+4. Description: "ERP System Integration"
+5. User: Select your admin user
+6. Permissions: **Read/Write**
+7. Click **Generate API Key**
+8. Copy the Consumer Key and Consumer Secret immediately (secret is shown only once)
+9. Paste both into the ERP Settings page
 
-**Manual Sync buttons** *(to be fully implemented with backend):*
-- Sync Products Now
-- Sync Orders Now
-- Sync Customers Now
+**Actions Available:**
 
-**Sync log:** History of recent sync operations with record counts and any error messages.
+**Test Connection** button:
+- Validates credentials by making a test API call to `wp-json/wc/v3/system_status`
+- Displays green "Connected" badge on success
+- Shows error message on failure (common errors: invalid credentials, REST API disabled, security plugin blocking)
+
+**Save Settings** button:
+- Saves credentials securely to Supabase backend
+- Encrypts secrets before storage
+- Updates connection status indicator
+
+**Sync Products** button:
+- Fetches ALL products from WooCommerce (paginated, 100 per page)
+- Creates/updates SKUs in ERP inventory module
+- Syncs: Product name, SKU code, category, regular price, image URL, product/variation IDs
+- Shows progress indicator and success/failure toast
+- Displays count of products imported
+
+**Sync Orders** button:
+- Fetches the **100 most recent orders** from WooCommerce
+- Creates customers if they don't exist
+- Imports order line items
+- Maps WooCommerce order status to internal CS status
+- Shows progress indicator and success/failure toast
+- Displays count of orders imported
+
+**Connection Status Display:**
+- **Connected** badge (green) — credentials valid and tested
+- **Not Connected** badge (gray) — no credentials or test failed
+- Last successful product sync timestamp
+- Last successful order sync timestamp
+- Sync status indicator (success/failed with error details)
+
+**Security Notes:**
+- Consumer Key and Secret are encrypted in database
+- API calls use HTTPS and Basic Authentication
+- Credentials never exposed in frontend logs
+- All WooCommerce communication goes through Supabase Edge Functions
+
+**Current Status:**
+- Manual sync functional when credentials are valid
+- Currently debugging 401 authentication errors with production API
+- Auto-sync (scheduled background sync) planned for future release
+- Webhook support (real-time sync) planned for future release
+
+### 11.5 Courier Integration
+
+Configures API connections to Bangladesh courier services for automated parcel booking and tracking.
+
+**Purpose:**
+- Automate parcel booking with couriers (Pathao, Steadfast, Redx, Sundarban)
+- Generate courier consignment numbers automatically
+- Fetch real-time tracking status
+- Calculate delivery charges programmatically
+- Reduce manual courier portal work
+
+**Supported Couriers:**
+
+#### Pathao Courier API
+
+**Configuration Fields:**
+- **Enable Pathao Integration** — toggle switch
+- **Environment** — Sandbox (testing) or Production
+- **Base URL** — API endpoint (auto-set based on environment)
+  - Sandbox: `https://courier-api-sandbox.pathao.com`
+  - Production: `https://api-hermes.pathao.com`
+- **Client ID** — OAuth client ID from Pathao merchant portal
+- **Client Secret** — OAuth client secret (masked with show/hide toggle)
+- **Username** — Merchant username
+- **Password** — Merchant password (masked with show/hide toggle)
+- **Store ID** — Pathao store/merchant ID (optional, fetched from API after auth)
+
+**Features:**
+- OAuth 2.0 Authentication with automatic token generation and refresh
+- Test Connection button validates credentials and retrieves access token
+- Sandbox Credentials button auto-fills Pathao's official sandbox credentials for testing
+- Token expiry tracking (Pathao tokens expire after 5 days)
+
+**API Documentation:**
+Detailed Pathao API documentation embedded in the system at `/src/imports/pathao-api-docs.md`
+
+#### Steadfast Courier API
+
+**Configuration Fields:**
+- **Enable Steadfast Integration** — toggle switch
+- **Environment** — Sandbox or Production
+- **Base URL** — `https://portal.packzy.com/api/v1` (sandbox) or `https://portal.steadfast.com.bd/api/v1` (production)
+- **API Key** — Steadfast API key (masked)
+- **Secret Key** — Steadfast secret key (masked)
+
+**Features:**
+- Simpler API key-based authentication (no OAuth)
+- Test Connection button validates API credentials
+
+**API Documentation:**
+Steadfast API docs embedded at `/src/imports/steadfast-api-docs.md`
+
+**Security:**
+- All API credentials encrypted at rest in Supabase
+- Edge Functions handle all courier API calls (credentials never sent to frontend)
+- Secrets masked in UI with show/hide toggle
+
+**Use Cases:**
+- "Book Courier" button in Order Detail uses these APIs
+- Automatically create consignments when orders reach "Packed" status
+- Track shipments in real-time from Fulfilment → Operations view
+- Reconcile COD amounts from courier portals
+
+### 11.6 SMS Integration
+
+Configures Greenweb SMS API for sending automated order notifications to customers.
+
+**Purpose:**
+- Send order confirmation SMS to customers
+- Send shipping notifications with tracking numbers
+- Send delivery confirmation messages
+- Send payment reminders
+- Professional branded SMS sender ID
+
+**Greenweb SMS Configuration:**
+
+**API Settings:**
+- **Enable SMS Integration** — toggle switch
+- **API Token** — Greenweb API token (masked with show/hide toggle)
+- **Base URL** — `https://api.greenweb.com.bd/api.php` (auto-configured)
+- **Use SSL** — toggle for HTTPS (recommended: ON)
+- **Use JSON** — toggle for JSON response format (recommended: ON)
+
+**How to Get API Token:**
+Generate token at: `https://gwb.li/token`
+
+**Test SMS Feature:**
+- Test Phone Number field (auto-formats Bangladesh numbers)
+- Test Message field (customizable, max 160 chars)
+- Send Test SMS button validates credentials with real SMS
+
+**SMS Templates:**
+Pre-configured templates for order confirmation, shipping notification, delivery confirmation, and payment reminders
+
+**SMS Sending from Order Detail:**
+- SMS section with pre-filled templates
+- Recipient phone auto-filled from customer data
+- SMS log stored in order activity timeline
+
+**Security:**
+- API token encrypted in Supabase
+- All SMS sending via Edge Functions
+- SMS logs tracked for audit
+
+**API Documentation:**
+Full Greenweb SMS API docs at `/src/imports/sms-api-docs.md`
+
+### 11.7 Barcode Integration
+
+Configures barcode label generation and printing for products and warehouse locations.
+
+**Purpose:**
+- Generate printable barcode labels for inventory SKUs
+- Create location labels for warehouse bins/shelves
+- Enable barcode scanning during order picking and receiving
+- Standardize product identification across warehouse operations
+
+**Label Configuration:**
+
+**Label Size Settings:**
+- Width in inches (default: 2", common: 2", 2.25", 3", 4")
+- Height in inches (default: 1", common: 0.75", 1", 1.5", 2")
+- Pre-configured for standard label printers (Zebra, Brother, DYMO)
+
+**Barcode Format:**
+- CODE128 (default, recommended) — alphanumeric SKUs, high density
+- EAN13 — retail products with 13-digit GTINs
+- UPC — US retail products with 12-digit UPCs
+- CODE39 — simple alphanumeric codes
+
+**Label Types:**
+
+#### Product/SKU Labels
+- Product name at top (bold, left-aligned, auto-truncates)
+- Large barcode in middle (high-contrast, easy to scan)
+- Human-readable SKU code at bottom (bold, monospace)
+- Generated at 300 DPI for crisp printing
+
+#### Warehouse Location Labels
+- Location name at top
+- Barcode encoding location code
+- Location code at bottom (large, bold)
+
+**Preview & Download:**
+- Live preview updates in real-time
+- Download Label button generates 300 DPI PNG
+- Ready to print on any label printer
+
+**Integration with Operations:**
+- Scan during receiving (GRN process)
+- Scan during picking (order fulfillment)
+- Scan during inventory audit
+- Scan for stock transfers
+
+**Hardware Compatibility:**
+- USB barcode scanners (HID keyboard mode)
+- Bluetooth barcode scanners
+- Mobile camera scanning
+
+**Barcode Scanning Modes:**
+1. Hardware Scanner Mode — rapid keypress detection, auto-opens Pick modal
+2. Camera Scanner Mode — uses device camera for QR/barcode scanning
 
 ---
 
